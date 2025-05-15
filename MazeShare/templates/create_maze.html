@@ -1,10 +1,220 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>미로생성 페이지</title>
+    <title>미로 생성 - MazeShare</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .maze-editor-container { display: flex; flex-direction: column; align-items: center; margin-top: 40px; }
+        #maze-canvas { border: 2px solid #333; background: #fff; cursor: pointer; }
+        .editor-btns { margin-top: 24px; display: flex; gap: 16px; }
+        .tool-btns { margin-bottom: 18px; display: flex; gap: 12px; }
+        .slider-label { margin-right: 12px; }
+        .difficulty-select { margin-left: 12px; }
+    </style>
 </head>
 <body>
+<div class="container">
+    <h2 class="text-center mt-5 mb-4">미로 생성</h2>
+    <div class="maze-editor-container">
+        <!-- 격자 크기 조절 슬라이더 (난이도 역할) -->
+        <div class="mb-3 d-flex align-items-center">
+            <span class="slider-label">격자 크기(난이도):</span>
+            <input type="range" id="gridSizeSlider" min="11" max="31" value="17" step="2" style="width:200px;">
+            <span id="gridSizeValue" class="ms-2">17</span>
+        </div>
+        <!-- 툴 선택 버튼 + 자동 생성 버튼 -->
+        <div class="tool-btns">
+            <button class="btn btn-outline-primary active" id="tool-wall">벽 그리기</button>
+            <button class="btn btn-outline-warning" id="tool-eraser">지우기</button>
+            <button class="btn btn-outline-success" id="tool-start">출발점</button>
+            <button class="btn btn-outline-danger" id="tool-end">도착점</button>
+            <button class="btn btn-outline-info" id="generateBtn">자동 생성</button>
+        </div>
+        <canvas id="maze-canvas" width="400" height="400"></canvas>
+        <div class="editor-btns">
+            <button class="btn btn-success" id="saveBtn">저장</button>
+            <button class="btn btn-secondary" id="resetBtn">초기화</button>
+            <a href="/" class="btn btn-outline-dark">메인으로</a>
+        </div>
+    </div>
+</div>
+<script>
+    // 격자 크기 및 미로 데이터
+    let gridSize = 17; // 홀수만 허용
+    let cellSize = 400 / gridSize;
+    let mazeData = Array.from({length: gridSize}, () => Array(gridSize).fill(0)); // 0:길, 1:벽
+    let start = null, end = null; // {x, y}
+    let currentTool = "wall";
 
+    const canvas = document.getElementById('maze-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // 툴 버튼
+    document.getElementById('tool-wall').onclick = () => setTool('wall');
+    document.getElementById('tool-eraser').onclick = () => setTool('eraser');
+    document.getElementById('tool-start').onclick = () => setTool('start');
+    document.getElementById('tool-end').onclick = () => setTool('end');
+
+    function setTool(tool) {
+        currentTool = tool;
+        document.querySelectorAll('.tool-btns button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('tool-' + tool).classList.add('active');
+    }
+
+    // 격자 크기 슬라이더
+    document.getElementById('gridSizeSlider').oninput = function() {
+        gridSize = parseInt(this.value);
+        document.getElementById('gridSizeValue').innerText = gridSize;
+        cellSize = 400 / gridSize;
+        mazeData = Array.from({length: gridSize}, () => Array(gridSize).fill(0));
+        start = null; end = null;
+        drawMaze();
+    };
+
+    // 미로 그리기 함수
+    function drawMaze() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let y = 0; y < gridSize; y++) {
+            for (let x = 0; x < gridSize; x++) {
+                ctx.fillStyle = mazeData[y][x] ? "#222" : "#fff";
+                ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                ctx.strokeStyle = "#bbb";
+                ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+            }
+        }
+        // 출발점
+        if (start) {
+            ctx.fillStyle = "#28a745";
+            ctx.beginPath();
+            ctx.arc((start.x + 0.5) * cellSize, (start.y + 0.5) * cellSize, cellSize/3, 0, 2*Math.PI);
+            ctx.fill();
+        }
+        // 도착점
+        if (end) {
+            ctx.fillStyle = "#dc3545";
+            ctx.beginPath();
+            ctx.arc((end.x + 0.5) * cellSize, (end.y + 0.5) * cellSize, cellSize/3, 0, 2*Math.PI);
+            ctx.fill();
+        }
+    }
+
+    // 좌표를 격자 인덱스로 변환
+    function getCellFromEvent(e) {
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.floor((e.clientX - rect.left) / cellSize);
+        const y = Math.floor((e.clientY - rect.top) / cellSize);
+        return {x, y};
+    }
+
+    // 마우스 이벤트 (벽 토글/지우기)
+    let isDrawing = false;
+    canvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        handleCanvasEvent(e, true);
+    });
+    canvas.addEventListener('mousemove', (e) => {
+        if (isDrawing && (currentTool === 'wall' || currentTool === 'eraser')) handleCanvasEvent(e, false);
+    });
+    canvas.addEventListener('mouseup', () => { isDrawing = false; });
+    canvas.addEventListener('mouseleave', () => { isDrawing = false; });
+
+    function handleCanvasEvent(e, clickToggle) {
+        const {x, y} = getCellFromEvent(e);
+        if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) return;
+        if (currentTool === 'wall') {
+            if (clickToggle) {
+                mazeData[y][x] = mazeData[y][x] ? 0 : 1; // 토글
+            } else {
+                mazeData[y][x] = 1; // 드래그: 벽
+            }
+        } else if (currentTool === 'eraser') {
+            mazeData[y][x] = 0; // 클릭/드래그: 길로 만듦(벽 삭제)
+        } else if (currentTool === 'start') {
+            start = {x, y};
+        } else if (currentTool === 'end') {
+            end = {x, y};
+        }
+        drawMaze();
+    }
+
+    // 초기화 버튼
+    document.getElementById('resetBtn').onclick = function() {
+        mazeData = Array.from({length: gridSize}, () => Array(gridSize).fill(0));
+        start = null; end = null;
+        drawMaze();
+    };
+
+    // 저장 버튼 (예시: 데이터 확인)
+    document.getElementById('saveBtn').onclick = function() {
+        if (!start || !end) {
+            alert("출발점과 도착점을 모두 지정해 주세요!");
+            return;
+        }
+        alert("미로 데이터(예시):\n" + JSON.stringify({
+            maze: mazeData,
+            start: start,
+            end: end
+        }));
+        // 실제로는 AJAX로 Flask 서버에 POST 요청
+    };
+
+    // ------------------------
+    // 자동 미로 생성 알고리즘 (DFS, 반드시 연결)
+    // ------------------------
+    function generateMazeDFS() {
+        // 모든 셀을 벽(1)으로 초기화
+        mazeData = Array.from({length: gridSize}, () => Array(gridSize).fill(1));
+        // 출발점/도착점 기본값
+        start = {x: 1, y: 1};
+        end = {x: gridSize-2, y: gridSize-2};
+
+        // DFS 백트래킹
+        const stack = [];
+        const visited = Array.from({length: gridSize}, () => Array(gridSize).fill(false));
+        let current = {x: 1, y: 1};
+        mazeData[current.y][current.x] = 0;
+        visited[current.y][current.x] = true;
+        stack.push(current);
+
+        const directions = [
+            {dx: 0, dy: -2}, // 상
+            {dx: 0, dy: 2},  // 하
+            {dx: -2, dy: 0}, // 좌
+            {dx: 2, dy: 0}   // 우
+        ];
+
+        while (stack.length > 0) {
+            let neighbors = [];
+            directions.forEach(({dx, dy}) => {
+                const nx = current.x + dx;
+                const ny = current.y + dy;
+                if (nx > 0 && nx < gridSize-1 && ny > 0 && ny < gridSize-1 && !visited[ny][nx]) {
+                    neighbors.push({x: nx, y: ny});
+                }
+            });
+
+            if (neighbors.length > 0) {
+                const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                // 벽 허물기
+                const wallX = current.x + (next.x - current.x)/2;
+                const wallY = current.y + (next.y - current.y)/2;
+                mazeData[wallY][wallX] = 0;
+                mazeData[next.y][next.x] = 0;
+                visited[next.y][next.x] = true;
+                stack.push(current);
+                current = next;
+            } else {
+                current = stack.pop();
+            }
+        }
+        drawMaze();
+    }
+
+    document.getElementById('generateBtn').onclick = generateMazeDFS;
+
+    // 최초 그리기
+    drawMaze();
+</script>
 </body>
 </html>
