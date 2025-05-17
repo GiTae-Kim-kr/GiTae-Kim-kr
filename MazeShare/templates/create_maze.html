@@ -14,6 +14,40 @@
     </style>
 </head>
 <body>
+<div class="modal fade" id="saveModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">미로 저장</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="saveForm">
+          <div class="mb-3">
+            <label>제목</label>
+            <input type="text" class="form-control" name="title" required>
+          </div>
+          <div class="mb-3">
+            <label>설명</label>
+            <textarea class="form-control" name="description" rows="3"></textarea>
+          </div>
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" name="is_published" value="1" checked>
+            <label class="form-check-label">메인에 게시하기</label>
+          </div>
+          <input type="hidden" name="maze_data" id="hiddenMazeData">
+          <input type="hidden" name="start" id="hiddenStart">
+          <input type="hidden" name="end" id="hiddenEnd">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+        <button type="button" class="btn btn-primary" id="confirmSave">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="container">
     <h2 class="text-center mt-5 mb-4">미로 생성</h2>
     <div class="maze-editor-container">
@@ -215,6 +249,43 @@
 
     // 최초 그리기
     drawMaze();
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// 저장 버튼 클릭 시 모달 표시
+document.getElementById('saveBtn').onclick = function() {
+  if (!start || !end) {
+    alert("출발점과 도착점을 모두 지정해 주세요!");
+    return;
+  }
+
+  // 데이터 hidden 필드에 저장
+  document.getElementById('hiddenMazeData').value = JSON.stringify(mazeData);
+  document.getElementById('hiddenStart').value = JSON.stringify(start);
+  document.getElementById('hiddenEnd').value = JSON.stringify(end);
+
+  // 모달 표시
+  new bootstrap.Modal(document.getElementById('saveModal')).show();
+};
+
+// 저장 확인 버튼 클릭
+document.getElementById('confirmSave').onclick = function() {
+  const formData = new FormData(document.getElementById('saveForm'));
+
+  fetch('/save_maze', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if(data.success) {
+      window.location.href = '/';
+    } else {
+      alert('저장 실패: ' + data.message);
+    }
+  });
+};
 </script>
 </body>
 </html>
