@@ -35,6 +35,7 @@
             <input type="checkbox" class="form-check-input" name="is_published" value="1" checked>
             <label class="form-check-label">메인에 게시하기</label>
           </div>
+          <input type="hidden" name="maze_image" id="hiddenMazeImage">
           <input type="hidden" name="maze_data" id="hiddenMazeData">
           <input type="hidden" name="start" id="hiddenStart">
           <input type="hidden" name="end" id="hiddenEnd">
@@ -260,11 +261,14 @@ document.getElementById('saveBtn').onclick = function() {
     return;
   }
 
+  // 캔버스 이미지를 base64 PNG로 추출
+  const canvasImage = document.getElementById('maze-canvas').toDataURL('image/png');
+
   // 데이터 hidden 필드에 저장
   document.getElementById('hiddenMazeData').value = JSON.stringify(mazeData);
   document.getElementById('hiddenStart').value = JSON.stringify(start);
   document.getElementById('hiddenEnd').value = JSON.stringify(end);
-
+  document.getElementById('hiddenMazeImage').value = canvasImage;  // 추가
   // 모달 표시
   new bootstrap.Modal(document.getElementById('saveModal')).show();
 };
