@@ -21,6 +21,15 @@
             justify-content: center;
             box-shadow: 0 4px 16px rgba(0,0,0,0.2);
         }
+        /* 추가: 카드 크기 조정 */
+        .maze-card {
+            max-width: 300px;
+            margin: 10px auto;
+        }
+        .card-img-top {
+            height: 150px;
+            object-fit: cover;
+        }
     </style>
 </head>
 <body>
@@ -98,8 +107,13 @@
         <!-- 검색 & 정렬/필터 영역 -->
         <div class="row mb-4">
             <div class="col-md-6">
-                <form class="d-flex" role="search">
-                    <input class="form-control me-2" type="search" placeholder="미로 검색" aria-label="Search">
+                <form class="d-flex" role="search" method="GET" action="/">
+                    <input class="form-control me-2"
+                        type="search"
+                        name="q"
+                        placeholder="미로 제목 또는 작성자 검색"
+                        aria-label="Search"
+                        value="{{ query if query }}">
                     <button class="btn btn-outline-success" type="submit">검색</button>
                 </form>
             </div>
@@ -118,40 +132,71 @@
             </div>
         </div>
 
-        <!-- 미로 카드 리스트 (예시 6개로 2줄 보이게) -->
-       <div class="row row-cols-1 row-cols-md-3 g-4">
-    {% for maze in mazes %}
-    <div class="col">
-        <div class="card h-100">  <!-- card 추가 -->
-            <div class="card-body">
-                <h5 class="card-title">{{ maze.title }}</h5>
-                <p class="card-text">{{ maze.description }}</p>
-                <p class="text-muted small">
-                    제작자: {{ maze.author.username }}<br>  <!-- user → author로 수정 -->
-                    생성일: {{ maze.created_at.strftime('%Y-%m-%d') }}
-                </p>
-                <a href="/play/{{ maze.id }}" class="btn btn-primary">플레이</a>
+        <!-- 미로 카드 리스트 -->
+        <div class="row row-cols-1 row-cols-md-3 g-4 justify-content-center">
+            {% for maze in mazes.items %}
+            <div class="col">
+                <div class="card maze-card h-100">
+                    {% if maze.image_path %}
+                    <img src="{{ url_for('static', filename=maze.image_path) }}"
+                         class="card-img-top"
+                         alt="미로 미리보기">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ maze.title }}</h5>
+                        <p class="card-text">{{ maze.description }}</p>
+                        <p class="text-muted small">
+                            제작자: {{ maze.author.username }}<br>
+                            생성일: {{ maze.created_at.strftime('%Y-%m-%d') }}
+                        </p>
+                        <a href="/play/{{ maze.id }}" class="btn btn-primary">플레이</a>
+                    </div>
+                </div>
             </div>
+            {% endfor %}
         </div>
-    </div>
-    {% endfor %}
-</div>
 
 
 
-        <!-- 페이지네이션 (아래쪽에 충분한 여백) -->
+        <!-- 페이지네이션 수정 -->
         <nav aria-label="미로 페이지네이션" class="mt-5 mb-5">
-          <ul class="pagination justify-content-center">
-            <li class="page-item disabled">
-              <a class="page-link" href="#" tabindex="-1">이전</a>
-            </li>
-            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-            <li class="page-item"><a class="page-link" href="#">2</a></li>
-            <li class="page-item"><a class="page-link" href="#">3</a></li>
-            <li class="page-item">
-              <a class="page-link" href="#">다음</a>
-            </li>
-          </ul>
+            <ul class="pagination justify-content-center">
+                {% if mazes.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="?q={{ query }}&page={{ mazes.prev_num }}">이전</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1">이전</a>
+                </li>
+                {% endif %}
+
+                {% for page_num in mazes.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num == mazes.page %}
+                            <li class="page-item active">
+                                <a class="page-link" href="#">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item">
+                                <a class="page-link" href="?q={{ query }}&page={{ page_num }}">{{ page_num }}</a>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <span class="page-link">...</span>
+                    {% endif %}
+                {% endfor %}
+
+                {% if mazes.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?q={{ query }}&page={{ mazes.next_num }}">다음</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#">다음</a>
+                </li>
+                {% endif %}
+            </ul>
         </nav>
     </div>
 
