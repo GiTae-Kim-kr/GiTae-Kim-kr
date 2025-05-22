@@ -25,7 +25,7 @@ class Maze(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     start = db.Column(db.JSON)
     end = db.Column(db.JSON)
-
+    image_path = db.Column(db.String(200))  # 이미지 경로 저장
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
