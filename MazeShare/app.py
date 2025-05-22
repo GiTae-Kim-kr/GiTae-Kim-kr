@@ -21,8 +21,28 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    mazes = Maze.query.filter_by(is_published=True).order_by(Maze.created_at.desc()).all()
-    return render_template('index.html', mazes=mazes)
+    query = request.args.get('q', '')  # 검색어 파라미터 추가
+    page = request.args.get('page', 1, type=int)
+    per_page = 6
+
+    if query:
+        # 검색 쿼리가 있는 경우
+        mazes = Maze.query.join(User)\
+            .filter(
+                (Maze.title.ilike(f'%{query}%')) |
+                (User.username.ilike(f'%{query}%'))
+            )\
+            .filter(Maze.is_published == True)\
+            .order_by(Maze.created_at.desc())\
+            .paginate(page=page, per_page=per_page)
+    else:
+        # 일반 조회
+        mazes = Maze.query.filter_by(is_published=True)\
+            .order_by(Maze.created_at.desc())\
+            .paginate(page=page, per_page=per_page)
+
+    return render_template('index.html', mazes=mazes, query=query)
+
 
 app.register_blueprint(maze_bp)
 app.register_blueprint(auth_bp)
