@@ -1,10 +1,200 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>{{ maze.title }} - 플레이</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #maze-canvas {
+            border: 2px solid #333;
+            margin: 20px auto;
+            display: block;
+        }
+        .ranking-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .player {
+            transition: all 0.1s ease;
+        }
+    </style>
 </head>
 <body>
+    <div class="container mt-5">
+        <!-- 헤더 영역 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>{{ maze.title }} <small class="text-muted">by {{ maze.author.username }}</small></h2>
+            <div>
+                <button id="playButton" class="btn btn-primary">플레이 시작</button>
+                <button class="btn btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#rankingModal">
+                    랭킹 보기
+                </button>
+                <div id="timerDisplay" class="text-muted mt-2" style="display: none;">
+                    <span class="badge bg-danger">시간: <span id="timeValue">0.00</span>초</span>
+                </div>
+            </div>
+        </div>
 
+        <!-- 미로 캔버스 -->
+        <canvas id="maze-canvas" width="600" height="600"></canvas>
+
+        <!-- 메인으로 돌아가기 -->
+        <div class="text-center mt-4">
+            <a href="/" class="btn btn-secondary">메인으로</a>
+        </div>
+    </div>
+
+    <!-- 랭킹 모달 -->
+    <div class="modal fade" id="rankingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">🏆 {{ maze.title }} 랭킹</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul id="rankingList" class="list-group ranking-list">
+                        <!-- 동적 로딩 -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 수정 후
+        const mazeData = {{ maze_data | safe }};
+        const startPos = {{ start_pos | safe }};
+        const endPos = {{ end_pos | safe }};
+        const mazeId = {{ maze.id }};
+        const cellSize = 600 / mazeData.length;
+        // DOM 요소
+        const canvas = document.getElementById('maze-canvas');
+        const ctx = canvas.getContext('2d');
+        let player = { ...startPos };
+        let timerInterval, startTime, isPlaying = false;
+
+        // 미로 그리기 함수
+        function drawMaze() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 벽 그리기
+            ctx.fillStyle = "#2c3e50";
+            for(let y=0; y<mazeData.length; y++){
+                for(let x=0; x<mazeData[y].length; x++){
+                    if(mazeData[y][x] === 1) {
+                        ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+
+            // 시작점 (초록색)
+            ctx.fillStyle = "#2ecc71";
+            ctx.beginPath();
+            ctx.arc(
+                (startPos.x + 0.5) * cellSize,
+                (startPos.y + 0.5) * cellSize,
+                cellSize/3, 0, 2 * Math.PI
+            );
+            ctx.fill();
+
+            // 도착점 (빨간색)
+            ctx.fillStyle = "#e74c3c";
+            ctx.beginPath();
+            ctx.arc(
+                (endPos.x + 0.5) * cellSize,
+                (endPos.y + 0.5) * cellSize,
+                cellSize/3, 0, 2 * Math.PI
+            );
+            ctx.fill();
+
+            // 플레이어 (파란색)
+            ctx.fillStyle = "#3498db";
+            ctx.beginPath();
+            ctx.arc(
+                (player.x + 0.5) * cellSize,
+                (player.y + 0.5) * cellSize,
+                cellSize/4, 0, 2 * Math.PI
+            );
+            ctx.fill();
+        }
+
+        // 게임 시작
+        document.getElementById('playButton').addEventListener('click', () => {
+            isPlaying = true;
+            player = { ...startPos };
+            document.getElementById('playButton').disabled = true;
+            document.getElementById('timerDisplay').style.display = 'block';
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 50);
+            drawMaze();
+        });
+
+        // 타이머 업데이트
+        function updateTimer() {
+            const elapsed = Date.now() - startTime;
+            document.getElementById('timeValue').textContent = (elapsed / 1000).toFixed(2);
+        }
+
+        // 키보드 이벤트
+        document.addEventListener('keydown', (e) => {
+            if(!isPlaying) return;
+
+            const prev = { ...player };
+            switch(e.key) {
+                case 'ArrowUp': player.y--; break;
+                case 'ArrowDown': player.y++; break;
+                case 'ArrowLeft': player.x--; break;
+                case 'ArrowRight': player.x++; break;
+            }
+
+            // 벽 충돌 검사
+            if(mazeData[player.y]?.[player.x] === 1) {
+                player = prev;
+            }
+
+            drawMaze();
+
+            // 도착 확인
+            if(player.x === endPos.x && player.y === endPos.y) {
+                clearInterval(timerInterval);
+                isPlaying = false;
+                const time = (Date.now() - startTime) / 1000;
+
+                fetch(`/submit_time/${mazeId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ time: time })
+                }).then(() => {
+                    alert(`기록: ${time.toFixed(2)}초!`);
+                    location.reload();
+                });
+            }
+        });
+
+        // 랭킹 불러오기
+        document.getElementById('rankingModal').addEventListener('show.bs.modal', () => {
+            fetch(`/maze_reviews/${mazeId}/rankings`)
+                .then(res => res.json())
+                .then(data => {
+                    const list = document.getElementById('rankingList');
+                    list.innerHTML = data.map((r, i) => `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-primary me-2">${i+1}위</span>
+                                ${r.username}
+                            </div>
+                            <span class="badge bg-success">${r.time_seconds.toFixed(2)}초</span>
+                        </li>
+                    `).join('') || '<li class="list-group-item">아직 기록이 없습니다</li>';
+                });
+        });
+
+        // play_maze.html 스크립트 최하단에 추가
+        window.addEventListener('load', () => {
+            drawMaze();  // 페이지 로드 시 즉시 미로 렌더링
+        });
+    </script>
 </body>
 </html>
