@@ -1,7 +1,7 @@
-from flask import Blueprint, render_template, request, jsonify, current_app
+from flask import Blueprint, render_template, request, jsonify, current_app, redirect, json, flash
 from datetime import datetime
 from flask_login import login_required, current_user
-from models import db, Maze
+from models import db, Maze, Review, User, Ranking
 import base64
 import os
 
@@ -56,4 +56,58 @@ def save_maze():
     except Exception as e:
         db.session.rollback()  # 오류 발생 시 롤백
         return jsonify({'success': False, 'message': str(e)})
+
+@maze_bp.route('/submit_review/<int:maze_id>', methods=['POST'])
+@login_required
+def submit_review(maze_id):
+    content = request.form.get('review')
+    new_review = Review(
+        content=content,
+        user_id=current_user.id,
+        maze_id=maze_id
+    )
+    db.session.add(new_review)
+    db.session.commit()
+    flash("리뷰가 등록되었습니다.", "success")
+    return redirect(request.referrer)
+
+@maze_bp.route('/maze_reviews/<int:maze_id>')
+def maze_reviews(maze_id):
+    reviews = Review.query.filter_by(maze_id=maze_id).order_by(Review.created_at.desc()).all()
+    review_list = [
+        {
+            "username": review.user.username,
+            "content": review.content,
+            "created_at": review.created_at.strftime("%Y-%m-%d %H:%M")
+        }
+        for review in reviews
+    ]
+    return jsonify(review_list)
+
+@maze_bp.route('/play_maze/<int:maze_id>')
+def play_maze(maze_id):
+    maze = Maze.query.get_or_404(maze_id)
+    return render_template('play_maze.html',
+        maze=maze,
+        maze_data=json.dumps(maze.data),  # 명시적 직렬화
+        start_pos=json.dumps(maze.start),
+        end_pos=json.dumps(maze.end)
+    )
+
+@maze_bp.route('/maze_reviews/<int:maze_id>/rankings')
+def maze_rankings(maze_id):
+    rankings = Ranking.query.filter_by(maze_id=maze_id) \
+        .join(User) \
+        .with_entities(
+        User.username,
+        Ranking.time_seconds
+    ) \
+        .order_by(Ranking.time_seconds.asc()) \
+        .limit(10) \
+        .all()
+
+    return jsonify([
+        {"username": r.username, "time_seconds": r.time_seconds}
+        for r in rankings
+    ])
 
