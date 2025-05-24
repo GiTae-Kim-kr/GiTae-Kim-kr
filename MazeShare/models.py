@@ -26,9 +26,22 @@ class Maze(db.Model):
     start = db.Column(db.JSON)
     end = db.Column(db.JSON)
     image_path = db.Column(db.String(200))  # 이미지 경로 저장
+
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
-    rating = db.Column(db.Integer)
-    maze_id = db.Column(db.Integer, db.ForeignKey('maze.id'))
-    # ... (추가 필드)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    maze_id = db.Column(db.Integer, db.ForeignKey('maze.id'), nullable=False)
+    user = db.relationship('User', backref='reviews')
+    maze = db.relationship('Maze', backref='reviews')
+
+class Ranking(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    maze_id = db.Column(db.Integer, db.ForeignKey('maze.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    time_seconds = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    maze = db.relationship('Maze', backref='rankings')
+    user = db.relationship('User', backref='rankings')
