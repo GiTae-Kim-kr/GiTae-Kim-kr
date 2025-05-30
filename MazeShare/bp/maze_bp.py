@@ -7,11 +7,9 @@ import os
 
 maze_bp = Blueprint('maze', __name__)
 
-
 @maze_bp.route('/create_maze')
 def create_maze():
     return render_template('create_maze.html')
-
 
 @maze_bp.route('/save_maze', methods=['POST'])
 @login_required
@@ -22,13 +20,17 @@ def save_maze():
         header, encoded = maze_image_data.split(',', 1)
         image_bytes = base64.b64decode(encoded)
 
-        # 미로 데이터 먼저 저장 (ID 생성 위해)
+        # JSON 데이터 파싱
+        maze_data = json.loads(request.form['maze_data'])
+        start_pos = json.loads(request.form['start'])
+        end_pos = json.loads(request.form['end'])
+
         new_maze = Maze(
             title=request.form['title'],
             description=request.form['description'],
-            data=request.form['maze_data'],
-            start=request.form['start'],
-            end=request.form['end'],
+            data=maze_data,
+            start=start_pos,
+            end=end_pos,
             is_published=request.form.get('is_published') == '1',
             user_id=current_user.id,
             created_at=datetime.utcnow()
@@ -37,24 +39,22 @@ def save_maze():
         db.session.commit()
 
         # 이미지 저장 경로 설정
-        static_folder = current_app.static_folder  # Flask의 static 폴더 경로
+        static_folder = current_app.static_folder
         img_dir = os.path.join(static_folder, 'mazes')
-        os.makedirs(img_dir, exist_ok=True)  # 디렉토리 없으면 생성
+        os.makedirs(img_dir, exist_ok=True)
 
-        # 파일 저장
         img_filename = f'maze_{new_maze.id}.png'
         img_full_path = os.path.join(img_dir, img_filename)
 
         with open(img_full_path, 'wb') as f:
             f.write(image_bytes)
 
-        # DB에 상대 경로 저장 (static/ 제외)
         new_maze.image_path = f'mazes/{img_filename}'
         db.session.commit()
 
         return jsonify({'success': True})
     except Exception as e:
-        db.session.rollback()  # 오류 발생 시 롤백
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)})
 
 @maze_bp.route('/submit_review/<int:maze_id>', methods=['POST'])
@@ -89,9 +89,9 @@ def play_maze(maze_id):
     maze = Maze.query.get_or_404(maze_id)
     return render_template('play_maze.html',
         maze=maze,
-        maze_data=json.dumps(maze.data),  # 명시적 직렬화
-        start_pos=json.dumps(maze.start),
-        end_pos=json.dumps(maze.end)
+        maze_data=maze.data,  # JSON 직렬화 제거
+        start_pos=maze.start,
+        end_pos=maze.end
     )
 
 @maze_bp.route('/maze_reviews/<int:maze_id>/rankings')
