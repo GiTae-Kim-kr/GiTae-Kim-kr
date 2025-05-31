@@ -61,17 +61,14 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 데이터 할당
     const mazeData = {{ maze_data | tojson }};
     const startPos = {{ start_pos | tojson }};
     const endPos = {{ end_pos | tojson }};
     const mazeId = {{ maze.id }};
 
-    // DOM 요소
     const canvas = document.getElementById('maze-canvas');
     const ctx = canvas.getContext('2d');
 
-    // 미로 데이터 검증
     if (!Array.isArray(mazeData) || mazeData.length === 0) {
         console.error("Invalid maze data:", mazeData);
         return;
@@ -81,15 +78,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const rows = mazeData.length;
     const cellSize = Math.min(canvas.width / cols, canvas.height / rows);
 
-    // 플레이어 초기화
     let player = { x: startPos.x, y: startPos.y };
     let timerInterval, startTime, isPlaying = false;
 
-    // 미로 그리기 함수
     function drawMaze() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 벽 그리기 (검은색)
         ctx.fillStyle = "#000000";
         for(let y = 0; y < rows; y++) {
             for(let x = 0; x < cols; x++) {
@@ -99,7 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // 시작점 (초록색)
         ctx.fillStyle = "#00FF00";
         ctx.beginPath();
         ctx.arc(
@@ -109,7 +102,6 @@ document.addEventListener('DOMContentLoaded', function() {
         );
         ctx.fill();
 
-        // 도착점 (빨간색)
         ctx.fillStyle = "#FF0000";
         ctx.beginPath();
         ctx.arc(
@@ -119,7 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
         );
         ctx.fill();
 
-        // 플레이어 (파란색)
         ctx.fillStyle = "#0000FF";
         ctx.beginPath();
         ctx.arc(
@@ -130,7 +121,6 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.fill();
     }
 
-    // 게임 시작 이벤트
     document.getElementById('playButton').addEventListener('click', () => {
         isPlaying = true;
         player = { x: startPos.x, y: startPos.y };
@@ -141,13 +131,11 @@ document.addEventListener('DOMContentLoaded', function() {
         drawMaze();
     });
 
-    // 타이머 업데이트
     function updateTimer() {
         const elapsed = Date.now() - startTime;
         document.getElementById('timeValue').textContent = (elapsed / 1000).toFixed(2);
     }
 
-    // 키보드 이벤트
     document.addEventListener('keydown', (e) => {
         if (!isPlaying) return;
 
@@ -165,7 +153,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         drawMaze();
 
-        // 도착 확인
         if (player.x === endPos.x && player.y === endPos.y) {
             clearInterval(timerInterval);
             isPlaying = false;
@@ -174,17 +161,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ time: time })
-            }).then(() => {
-                alert(`기록: ${time.toFixed(2)}초!`);
-                location.reload();
+            }).then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    alert(`기록: ${time.toFixed(2)}초!`);
+                    location.reload();
+                } else {
+                    alert('기록 저장 실패: ' + data.message);
+                }
             });
         }
     });
 
-    // 초기 렌더링
+    document.getElementById('rankingModal').addEventListener('show.bs.modal', () => {
+        fetch(`/maze_reviews/${mazeId}/rankings`)
+            .then(res => res.json())
+            .then(data => {
+                const list = document.getElementById('rankingList');
+                list.innerHTML = data.map((r, i) => `
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-primary me-2">${i+1}위</span>
+                            ${r.username}
+                        </div>
+                        <span class="badge bg-success">${r.time_seconds.toFixed(2)}초</span>
+                    </li>
+                `).join('') || '<li class="list-group-item">아직 기록이 없습니다</li>';
+            });
+    });
+
     drawMaze();
 });
 </script>
+    
 
 </body>
 </html>
