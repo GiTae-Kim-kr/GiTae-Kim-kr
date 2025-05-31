@@ -18,9 +18,9 @@
         .player {
             transition: all 0.1s ease;
         }
-        .review-card {
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 1rem;
+        #reviewButton:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -33,7 +33,7 @@
                 <button class="btn btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#rankingModal">
                     랭킹 보기
                 </button>
-                <button class="btn btn-outline-warning ms-2" id="reviewButton">
+                <button class="btn btn-outline-warning ms-2" id="reviewButton" disabled>
                     리뷰 등록/보기
                 </button>
                 <div id="timerDisplay" class="text-muted mt-2" style="display: none;">
@@ -98,6 +98,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const canvas = document.getElementById('maze-canvas');
     const ctx = canvas.getContext('2d');
+    const reviewButton = document.getElementById('reviewButton');
+
+    // 1. 페이지 로드 시 랭킹 확인
+    fetch(`/check_ranking/${mazeId}`)
+        .then(res => res.json())
+        .then(data => {
+            reviewButton.disabled = !data.has_ranking;
+        });
 
     if (!Array.isArray(mazeData) || mazeData.length === 0) {
         console.error("Invalid maze data:", mazeData);
@@ -114,6 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function drawMaze() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        // 벽 그리기
         ctx.fillStyle = "#000000";
         for(let y = 0; y < rows; y++) {
             for(let x = 0; x < cols; x++) {
@@ -123,6 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        // 시작점
         ctx.fillStyle = "#00FF00";
         ctx.beginPath();
         ctx.arc(
@@ -132,6 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
         );
         ctx.fill();
 
+        // 도착점
         ctx.fillStyle = "#FF0000";
         ctx.beginPath();
         ctx.arc(
@@ -141,6 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
         );
         ctx.fill();
 
+        // 플레이어
         ctx.fillStyle = "#0000FF";
         ctx.beginPath();
         ctx.arc(
@@ -183,10 +195,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         drawMaze();
 
+        // 2. 도착 시 기록 업데이트
         if (player.x === endPos.x && player.y === endPos.y) {
             clearInterval(timerInterval);
             isPlaying = false;
             const time = (Date.now() - startTime) / 1000;
+
             fetch(`/submit_time/${mazeId}`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -195,14 +209,13 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if(data.success) {
                     alert(`기록: ${time.toFixed(2)}초!`);
-                    location.reload();
-                } else {
-                    alert('기록 저장 실패: ' + data.message);
+                    location.reload(); // 새로고침으로 랭킹 상태 갱신
                 }
             });
         }
     });
 
+    // 3. 랭킹 모달 (최고 기록만 표시)
     document.getElementById('rankingModal').addEventListener('show.bs.modal', () => {
         fetch(`/maze_reviews/${mazeId}/rankings`)
             .then(res => res.json())
@@ -214,25 +227,17 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span class="badge bg-primary me-2">${i+1}위</span>
                             ${r.username}
                         </div>
-                        <span class="badge bg-success">${r.time_seconds.toFixed(2)}초</span>
+                        <span class="badge bg-success">${r.best_time.toFixed(2)}초</span>
                     </li>
                 `).join('') || '<li class="list-group-item">아직 기록이 없습니다</li>';
             });
     });
 
-    // 리뷰 버튼 클릭 시 랭킹 등록자만 모달 표시
+    // 4. 리뷰 기능
     document.getElementById('reviewButton').addEventListener('click', () => {
-        fetch(`/check_ranking/${mazeId}`)
-            .then(res => res.json())
-            .then(data => {
-                if(data.has_ranking) {
-                    const reviewModal = new bootstrap.Modal('#reviewModal');
-                    reviewModal.show();
-                    loadReviews();
-                } else {
-                    alert('랭킹에 등록된 사용자만 리뷰를 작성할 수 있습니다!');
-                }
-            });
+        const reviewModal = new bootstrap.Modal('#reviewModal');
+        reviewModal.show();
+        loadReviews();
     });
 
     function loadReviews() {
@@ -241,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(reviews => {
                 const reviewsList = document.getElementById('reviewsList');
                 reviewsList.innerHTML = reviews.map(r => `
-                    <div class="review-card card">
+                    <div class="card mb-3">
                         <div class="card-body">
                             <h6 class="card-subtitle mb-2 text-muted">
                                 ${r.username} (${r.created_at})
