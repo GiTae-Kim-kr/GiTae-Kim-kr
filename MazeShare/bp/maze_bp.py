@@ -15,12 +15,10 @@ def create_maze():
 @login_required
 def save_maze():
     try:
-        # 이미지 데이터 처리
         maze_image_data = request.form['maze_image']
         header, encoded = maze_image_data.split(',', 1)
         image_bytes = base64.b64decode(encoded)
 
-        # JSON 데이터 파싱
         maze_data = json.loads(request.form['maze_data'])
         start_pos = json.loads(request.form['start'])
         end_pos = json.loads(request.form['end'])
@@ -38,11 +36,9 @@ def save_maze():
         db.session.add(new_maze)
         db.session.commit()
 
-        # 이미지 저장 경로 설정
         static_folder = current_app.static_folder
         img_dir = os.path.join(static_folder, 'mazes')
         os.makedirs(img_dir, exist_ok=True)
-
         img_filename = f'maze_{new_maze.id}.png'
         img_full_path = os.path.join(img_dir, img_filename)
 
@@ -89,7 +85,7 @@ def play_maze(maze_id):
     maze = Maze.query.get_or_404(maze_id)
     return render_template('play_maze.html',
         maze=maze,
-        maze_data=maze.data,  # JSON 직렬화 제거
+        maze_data=maze.data,
         start_pos=maze.start,
         end_pos=maze.end
     )
@@ -110,4 +106,21 @@ def maze_rankings(maze_id):
         {"username": r.username, "time_seconds": r.time_seconds}
         for r in rankings
     ])
+
+# 랭킹 기록 저장 라우트 추가 (로그인 필요)
+@maze_bp.route('/submit_time/<int:maze_id>', methods=['POST'])
+@login_required
+def submit_time(maze_id):
+    data = request.get_json()
+    time_seconds = data.get('time')
+    if time_seconds is None:
+        return jsonify({'success': False, 'message': '시간 정보가 없습니다.'}), 400
+    new_ranking = Ranking(
+        maze_id=maze_id,
+        user_id=current_user.id,
+        time_seconds=time_seconds
+    )
+    db.session.add(new_ranking)
+    db.session.commit()
+    return jsonify({'success': True})
 
