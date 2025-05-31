@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>MazeShare</title>
-    <!-- Bootstrap 5 CSS CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* 오른쪽 하단 고정 미로 생성 버튼 */
         .fab-create-maze {
             position: fixed;
             right: 40px;
@@ -21,7 +19,6 @@
             justify-content: center;
             box-shadow: 0 4px 16px rgba(0,0,0,0.2);
         }
-        /* 추가: 카드 크기 조정 */
         .maze-card {
             max-width: 300px;
             margin: 10px auto;
@@ -29,6 +26,10 @@
         .card-img-top {
             height: 150px;
             object-fit: cover;
+        }
+        .review-box {
+            max-height: 200px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -64,7 +65,6 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
-            <!-- 로그인 탭 -->
             <div id="loginTab" class="auth-tab-content">
               <form method="POST" action="/login">
                 <div class="mb-3">
@@ -76,7 +76,6 @@
                 <button type="submit" class="btn btn-primary w-100">로그인</button>
               </form>
             </div>
-            <!-- 회원가입 탭 -->
             <div id="signupTab" class="auth-tab-content" style="display:none;">
               <form method="POST" action="/signup">
                 <div class="mb-3">
@@ -99,12 +98,11 @@
       </div>
     </div>
 
-    <!-- 메인 컨텐츠 영역 -->
+    <!-- 메인 컨텐츠 -->
     <div class="container mt-5">
-        <!-- 상단 제목 -->
         <h1 class="mb-4">MazeShare에 오신 것을 환영합니다!</h1>
 
-        <!-- 검색 & 정렬/필터 영역 -->
+        <!-- 검색 & 필터 -->
         <div class="row mb-4">
             <div class="col-md-6">
                 <form class="d-flex" role="search" method="GET" action="/">
@@ -118,7 +116,6 @@
                 </form>
             </div>
             <div class="col-md-3">
-                <!-- 정렬/필터 드롭다운 -->
                 <div class="dropdown">
                   <button class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     정렬/필터 선택
@@ -132,8 +129,7 @@
             </div>
         </div>
 
-
-        <!-- 미로 카드 리스트 -->
+        <!-- 미로 목록 -->
         <div class="row row-cols-1 row-cols-md-3 g-4 justify-content-center">
             {% for maze in mazes.items %}
             <div class="col">
@@ -162,9 +158,7 @@
             {% endfor %}
         </div>
 
-
-
-        <!-- 페이지네이션 수정 -->
+        <!-- 페이지네이션 -->
         <nav aria-label="미로 페이지네이션" class="mt-5 mb-5">
             <ul class="pagination justify-content-center">
                 {% if mazes.has_prev %}
@@ -206,7 +200,7 @@
         </nav>
     </div>
 
-        <!-- 미로 플레이 모달 -->
+    <!-- 미로 플레이 모달 (리뷰 등록 폼 제거) -->
     <div class="modal fade" id="mazeModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -218,45 +212,28 @@
                     <!-- 미로 이미지 -->
                     <img id="modalMazeImage" src="" class="img-fluid rounded mb-3" alt="미로 전체 보기">
 
-                    <!-- 리뷰 목록 -->
+                    <!-- 리뷰 목록 (작성 폼 없음) -->
                     <div class="review-box border p-3 mb-3">
                         <h6>리뷰</h6>
                         <div id="reviewsList">
-                            <!-- 리뷰 동적 로딩 영역 -->
                             <div class="alert alert-secondary">아직 리뷰가 없습니다.</div>
                         </div>
                     </div>
-
-                    <!-- 리뷰 작성 폼 -->
-                    <form id="reviewForm" method="POST">
-                        <div class="mb-3">
-                            <textarea class="form-control"
-                                      name="review"
-                                      placeholder="리뷰를 작성해주세요 (최대 200자)"
-                                      rows="3"
-                                      maxlength="200"
-                                      required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-success w-100">리뷰 등록</button>
-                    </form>
                     <a id="playMazeBtn" class="btn btn-warning w-100" href="#">미로 플레이하기</a>
                 </div>
             </div>
         </div>
     </div>
 
-
-    <!-- 오른쪽 하단 미로 생성 플로팅 버튼 -->
+    <!-- 생성 버튼 -->
     <a href="/create_maze" class="btn btn-warning fab-create-maze" title="미로 생성">
         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
           <path d="M8 1.5a.5.5 0 0 1 .5.5v5.5H14a.5.5 0 0 1 0 1H8.5V14a.5.5 0 0 1-1 0V8.5H2a.5.5 0 0 1 0-1h5.5V2a.5.5 0 0 1 .5-.5z"/>
         </svg>
     </a>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // 탭 전환 로직
         document.querySelectorAll('#authTabs .nav-link').forEach(tab => {
             tab.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -270,38 +247,35 @@
                 e.target.classList.add('active');
             });
         });
-    </script>
-    <script>
-    const mazeModal = document.getElementById('mazeModal');
-    if (mazeModal) {
-    mazeModal.addEventListener('show.bs.modal', event => {
-        const button = event.relatedTarget;
-        const mazeId = button.getAttribute('data-maze-id');
-        const imagePath = button.getAttribute('data-image-path');
-        document.getElementById('modalMazeImage').src = imagePath;
-        document.getElementById('reviewForm').action = `/submit_review/${mazeId}`;
-        document.getElementById('playMazeBtn').href = `/play_maze/${mazeId}`;
 
-        // 리뷰 목록 AJAX로 불러오기
-        fetch(`/maze_reviews/${mazeId}`)
-            .then(response => response.json())
-            .then(reviews => {
-                const reviewsList = document.getElementById('reviewsList');
-                reviewsList.innerHTML = '';
-                if (reviews.length === 0) {
-                    reviewsList.innerHTML = '<div class="alert alert-secondary">아직 리뷰가 없습니다.</div>';
-                } else {
-                    reviews.forEach(r => {
-                        const div = document.createElement('div');
-                        div.className = 'border-bottom py-2';
-                        div.innerHTML = `<strong>${r.username}</strong> <span class="text-muted small">${r.created_at}</span><br>${r.content}`;
-                        reviewsList.appendChild(div);
+        const mazeModal = document.getElementById('mazeModal');
+        if (mazeModal) {
+            mazeModal.addEventListener('show.bs.modal', event => {
+                const button = event.relatedTarget;
+                const mazeId = button.getAttribute('data-maze-id');
+                const imagePath = button.getAttribute('data-image-path');
+                document.getElementById('modalMazeImage').src = imagePath;
+                document.getElementById('playMazeBtn').href = `/play_maze/${mazeId}`;
+
+                // 리뷰 목록 AJAX로 불러오기
+                fetch(`/maze_reviews/${mazeId}`)
+                    .then(response => response.json())
+                    .then(reviews => {
+                        const reviewsList = document.getElementById('reviewsList');
+                        reviewsList.innerHTML = '';
+                        if (reviews.length === 0) {
+                            reviewsList.innerHTML = '<div class="alert alert-secondary">아직 리뷰가 없습니다.</div>';
+                        } else {
+                            reviews.forEach(r => {
+                                const div = document.createElement('div');
+                                div.className = 'border-bottom py-2';
+                                div.innerHTML = `<strong>${r.username}</strong> <span class="text-muted small">${r.created_at}</span><br>${r.content}`;
+                                reviewsList.appendChild(div);
+                            });
+                        }
                     });
-                }
             });
-    });
-}
+        }
     </script>
 </body>
 </html>
-
