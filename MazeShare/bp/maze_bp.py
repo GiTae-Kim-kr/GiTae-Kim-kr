@@ -8,11 +8,9 @@ from sqlalchemy import func
 
 maze_bp = Blueprint('maze', __name__)
 
-
 @maze_bp.route('/create_maze')
 def create_maze():
     return render_template('create_maze.html')
-
 
 @maze_bp.route('/save_maze', methods=['POST'])
 @login_required
@@ -56,7 +54,6 @@ def save_maze():
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)})
 
-
 @maze_bp.route('/check_ranking/<int:maze_id>')
 @login_required
 def check_ranking(maze_id):
@@ -66,13 +63,13 @@ def check_ranking(maze_id):
     ).first()
     return jsonify({'has_ranking': ranking is not None})
 
-
 @maze_bp.route('/submit_review/<int:maze_id>', methods=['POST'])
 @login_required
 def submit_review(maze_id):
     content = request.form.get('review')
-    if not content:
-        return jsonify({'success': False, 'message': '리뷰 내용을 입력해주세요.'})
+    rating = request.form.get('rating', type=int)
+    if not content or not rating:
+        return jsonify({'success': False, 'message': '리뷰와 별점을 모두 입력해주세요.'}), 400
 
     # 랭킹 등록 여부 확인
     ranking = Ranking.query.filter_by(
@@ -85,13 +82,13 @@ def submit_review(maze_id):
 
     new_review = Review(
         content=content,
+        rating=rating,  # 별점 저장
         user_id=current_user.id,
         maze_id=maze_id
     )
     db.session.add(new_review)
     db.session.commit()
     return jsonify({'success': True, 'message': '리뷰가 등록되었습니다!'})
-
 
 @maze_bp.route('/maze_reviews/<int:maze_id>')
 def maze_reviews(maze_id):
@@ -100,12 +97,12 @@ def maze_reviews(maze_id):
         {
             "username": review.user.username,
             "content": review.content,
+            "rating": review.rating,
             "created_at": review.created_at.strftime("%Y-%m-%d %H:%M")
         }
         for review in reviews
     ]
     return jsonify(review_list)
-
 
 @maze_bp.route('/play_maze/<int:maze_id>')
 def play_maze(maze_id):
@@ -116,7 +113,6 @@ def play_maze(maze_id):
                            start_pos=maze.start,
                            end_pos=maze.end
                            )
-
 
 @maze_bp.route('/maze_reviews/<int:maze_id>/rankings')
 def maze_rankings(maze_id):
@@ -135,7 +131,6 @@ def maze_rankings(maze_id):
         {"username": r.username, "best_time": r.best_time}
         for r in rankings
     ])
-
 
 @maze_bp.route('/submit_time/<int:maze_id>', methods=['POST'])
 @login_required
