@@ -1,16 +1,18 @@
 from flask import Blueprint, render_template, request, jsonify, current_app, redirect, json, flash
 from datetime import datetime
 from flask_login import login_required, current_user
-from models import db, Maze, Review, User, Ranking
+from models import db, Maze, Review, User, Ranking, bookmarks
 import base64
 import os
 from sqlalchemy import func
 
 maze_bp = Blueprint('maze', __name__)
 
+
 @maze_bp.route('/create_maze')
 def create_maze():
     return render_template('create_maze.html')
+
 
 @maze_bp.route('/save_maze', methods=['POST'])
 @login_required
@@ -54,6 +56,7 @@ def save_maze():
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)})
 
+
 @maze_bp.route('/check_ranking/<int:maze_id>')
 @login_required
 def check_ranking(maze_id):
@@ -63,6 +66,7 @@ def check_ranking(maze_id):
     ).first()
     return jsonify({'has_ranking': ranking is not None})
 
+
 @maze_bp.route('/submit_review/<int:maze_id>', methods=['POST'])
 @login_required
 def submit_review(maze_id):
@@ -71,7 +75,6 @@ def submit_review(maze_id):
     if not content or not rating:
         return jsonify({'success': False, 'message': '리뷰와 별점을 모두 입력해주세요.'}), 400
 
-    # 랭킹 등록 여부 확인
     ranking = Ranking.query.filter_by(
         maze_id=maze_id,
         user_id=current_user.id
@@ -82,13 +85,14 @@ def submit_review(maze_id):
 
     new_review = Review(
         content=content,
-        rating=rating,  # 별점 저장
+        rating=rating,
         user_id=current_user.id,
         maze_id=maze_id
     )
     db.session.add(new_review)
     db.session.commit()
     return jsonify({'success': True, 'message': '리뷰가 등록되었습니다!'})
+
 
 @maze_bp.route('/maze_reviews/<int:maze_id>')
 def maze_reviews(maze_id):
@@ -104,19 +108,23 @@ def maze_reviews(maze_id):
     ]
     return jsonify(review_list)
 
+
 @maze_bp.route('/play_maze/<int:maze_id>')
 def play_maze(maze_id):
     maze = Maze.query.get_or_404(maze_id)
+    is_bookmarked = current_user.is_authenticated and current_user.bookmarked_mazes.filter_by(
+        id=maze_id).first() is not None  # 추가
     return render_template('play_maze.html',
                            maze=maze,
                            maze_data=maze.data,
                            start_pos=maze.start,
-                           end_pos=maze.end
+                           end_pos=maze.end,
+                           is_bookmarked=is_bookmarked  # 추가
                            )
+
 
 @maze_bp.route('/maze_reviews/<int:maze_id>/rankings')
 def maze_rankings(maze_id):
-    # 각 유저의 최고 기록 조회
     subquery = db.session.query(
         Ranking.user_id,
         func.min(Ranking.time_seconds).label('best_time')
@@ -132,6 +140,7 @@ def maze_rankings(maze_id):
         for r in rankings
     ])
 
+
 @maze_bp.route('/submit_time/<int:maze_id>', methods=['POST'])
 @login_required
 def submit_time(maze_id):
@@ -141,13 +150,11 @@ def submit_time(maze_id):
         return jsonify({'success': False, 'message': '시간 정보가 없습니다.'}), 400
 
     try:
-        # 기존 기록 조회
         existing_ranking = Ranking.query.filter_by(
             maze_id=maze_id,
             user_id=current_user.id
         ).first()
 
-        # 기록 업데이트 또는 새로 생성
         if existing_ranking:
             if time_seconds < existing_ranking.time_seconds:
                 existing_ranking.time_seconds = time_seconds
@@ -164,4 +171,19 @@ def submit_time(maze_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# 추가: 즐겨찾기 토글 기능
+@maze_bp.route('/toggle_bookmark/<int:maze_id>', methods=['POST'])
+@login_required
+def toggle_bookmark(maze_id):
+    maze = Maze.query.get_or_404(maze_id)
+    if current_user.bookmarked_mazes.filter_by(id=maze_id).first():
+        current_user.bookmarked_mazes.remove(maze)
+        action = 'removed'
+    else:
+        current_user.bookmarked_mazes.append(maze)
+        action = 'added'
+    db.session.commit()
+    return jsonify({'success': True, 'action': action})
 
