@@ -11,7 +11,6 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    # Maze 모델과의 관계 설정
     mazes = db.relationship('Maze', backref='author', lazy=True)
 
 class Maze(db.Model):
@@ -21,15 +20,15 @@ class Maze(db.Model):
     data = db.Column(db.JSON, nullable=False)
     is_published = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    # User 모델과의 외래 키 관계 설정
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     start = db.Column(db.JSON)
     end = db.Column(db.JSON)
-    image_path = db.Column(db.String(200))  # 이미지 경로 저장
+    image_path = db.Column(db.String(200))
 
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 별점 필드 추가 (1~5)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     maze_id = db.Column(db.Integer, db.ForeignKey('maze.id'), nullable=False)
@@ -42,6 +41,5 @@ class Ranking(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     time_seconds = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
     maze = db.relationship('Maze', backref='rankings')
     user = db.relationship('User', backref='rankings')
