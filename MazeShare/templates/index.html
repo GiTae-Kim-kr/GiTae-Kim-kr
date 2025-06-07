@@ -31,71 +31,88 @@
             max-height: 200px;
             overflow-y: auto;
         }
+        .review-stars {
+            color: #ffd700;
+            font-size: 14px;
+        }
+        .maze-rating {
+            color: #ffd700;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+        }
+        .maze-rating svg {
+            margin-right: 3px;
+        }
+        .maze-rating .average {
+            margin-left: 5px;
+        }
     </style>
 </head>
 <body>
     <!-- 네비게이션 바 -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="#">MazeShare</a>
-        <div class="d-flex ms-auto">
-          {% if current_user.is_authenticated %}
-            <span class="nav-link text-white">환영합니다, {{ current_user.username }}!</span>
-            <a class="nav-link text-white ms-3" href="/logout">로그아웃</a>
-          {% else %}
-            <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#authModal">로그인</button>
-          {% endif %}
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">MazeShare</a>
+            <div class="d-flex ms-auto">
+                {% if current_user.is_authenticated %}
+                    <span class="nav-link text-white">환영합니다, {{ current_user.username }}!</span>
+                    <a class="nav-link text-white ms-3" href="/logout">로그아웃</a>
+                {% else %}
+                    <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#authModal">로그인</button>
+                {% endif %}
+            </div>
         </div>
-      </div>
     </nav>
 
     <!-- 로그인/회원가입 모달 -->
     <div class="modal fade" id="authModal" tabindex="-1">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <ul class="nav nav-tabs" id="authTabs">
-              <li class="nav-item">
-                <a class="nav-link active" href="#loginTab">로그인</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#signupTab">회원가입</a>
-              </li>
-            </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <div id="loginTab" class="auth-tab-content">
-              <form method="POST" action="/login">
-                <div class="mb-3">
-                  <input type="text" class="form-control" name="username" placeholder="아이디" required>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <ul class="nav nav-tabs" id="authTabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#loginTab">로그인</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#signupTab">회원가입</a>
+                        </li>
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="mb-3">
-                  <input type="password" class="form-control" name="password" placeholder="비밀번호" required>
+                <div class="modal-body">
+                    <div id="loginTab" class="auth-tab-content">
+                        <form method="POST" action="/login">
+                            <div class="mb-3">
+                                <input type="text" class="form-control" name="username" placeholder="아이디" required>
+                            </div>
+                            <div class="mb-3">
+                                <input type="password" class="form-control" name="password" placeholder="비밀번호" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">로그인</button>
+                        </form>
+                    </div>
+                    <div id="signupTab" class="auth-tab-content" style="display:none;">
+                        <form method="POST" action="/signup">
+                            <div class="mb-3">
+                                <input type="text" class="form-control" name="username" placeholder="아이디 (중복 불가)" required>
+                            </div>
+                            <div class="mb-3">
+                                <input type="password" class="form-control" name="password" placeholder="비밀번호" required>
+                            </div>
+                            <div class="mb-3">
+                                <input type="email" class="form-control" name="email" placeholder="이메일" required>
+                            </div>
+                            <div class="mb-3">
+                                <input type="tel" class="form-control" name="phone" placeholder="전화번호" required>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">회원가입</button>
+                        </form>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary w-100">로그인</button>
-              </form>
             </div>
-            <div id="signupTab" class="auth-tab-content" style="display:none;">
-              <form method="POST" action="/signup">
-                <div class="mb-3">
-                  <input type="text" class="form-control" name="username" placeholder="아이디 (중복 불가)" required>
-                </div>
-                <div class="mb-3">
-                  <input type="password" class="form-control" name="password" placeholder="비밀번호" required>
-                </div>
-                <div class="mb-3">
-                  <input type="email" class="form-control" name="email" placeholder="이메일" required>
-                </div>
-                <div class="mb-3">
-                  <input type="tel" class="form-control" name="phone" placeholder="전화번호" required>
-                </div>
-                <button type="submit" class="btn btn-success w-100">회원가입</button>
-              </form>
-            </div>
-          </div>
         </div>
-      </div>
     </div>
 
     <!-- 메인 컨텐츠 -->
@@ -117,14 +134,14 @@
             </div>
             <div class="col-md-3">
                 <div class="dropdown">
-                  <button class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    정렬/필터 선택
-                  </button>
-                  <ul class="dropdown-menu w-100">
-                    <li><a class="dropdown-item" href="#">랭킹</a></li>
-                    <li><a class="dropdown-item" href="#">즐겨찾기</a></li>
-                    <li><a class="dropdown-item" href="#">My</a></li>
-                  </ul>
+                    <button class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        정렬/필터 선택
+                    </button>
+                    <ul class="dropdown-menu w-100">
+                        <li><a class="dropdown-item" href="#">랭킹</a></li>
+                        <li><a class="dropdown-item" href="#">즐겨찾기</a></li>
+                        <li><a class="dropdown-item" href="#">My</a></li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -136,8 +153,12 @@
                 <div class="card maze-card h-100">
                     {% if maze.image_path %}
                     <img src="{{ url_for('static', filename=maze.image_path) }}"
-                         class="card-img-top"
-                         alt="미로 미리보기">
+                        class="card-img-top"
+                        alt="미로 미리보기">
+                    {% else %}
+                    <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 150px;">
+                        <span class="text-white">이미지 없음</span>
+                    </div>
                     {% endif %}
                     <div class="card-body">
                         <h5 class="card-title">{{ maze.title }}</h5>
@@ -147,10 +168,26 @@
                                     data-bs-toggle="modal"
                                     data-bs-target="#mazeModal"
                                     data-maze-id="{{ maze.id }}"
-                                    data-image-path="{{ url_for('static', filename=maze.image_path) }}">
+                                    {% if maze.image_path %}
+                                    data-image-path="{{ url_for('static', filename=maze.image_path) }}"
+                                    {% endif %}>
                                 플레이
                             </button>
                             <span class="badge bg-secondary">{{ maze.author.username }}</span>
+                        </div>
+                        <!-- 평균 평점 표시 -->
+                        <div class="maze-rating">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-star" viewBox="0 0 16 16">
+                                <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
+                            </svg>
+                            <span class="average">
+                                {% if maze.reviews %}
+                                    {% set avg_rating = (maze.reviews | sum(attribute='rating') / maze.reviews | length) | round(1) %}
+                                    {{ avg_rating }} ({{ maze.reviews | length }})
+                                {% else %}
+                                    0 (0)
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -200,7 +237,7 @@
         </nav>
     </div>
 
-    <!-- 미로 플레이 모달 (리뷰 등록 폼 제거) -->
+    <!-- 미로 플레이 모달 -->
     <div class="modal fade" id="mazeModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -209,10 +246,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- 미로 이미지 -->
                     <img id="modalMazeImage" src="" class="img-fluid rounded mb-3" alt="미로 전체 보기">
-
-                    <!-- 리뷰 목록 (작성 폼 없음) -->
                     <div class="review-box border p-3 mb-3">
                         <h6>리뷰</h6>
                         <div id="reviewsList">
@@ -228,51 +262,54 @@
     <!-- 생성 버튼 -->
     <a href="/create_maze" class="btn btn-warning fab-create-maze" title="미로 생성">
         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
-          <path d="M8 1.5a.5.5 0 0 1 .5.5v5.5H14a.5.5 0 0 1 0 1H8.5V14a.5.5 0 0 1-1 0V8.5H2a.5.5 0 0 1 0-1h5.5V2a.5.5 0 0 1 .5-.5z"/>
+            <path d="M8 1.5a.5.5 0 0 1 .5.5v5.5H14a.5.5 0 0 1 0 1H8.5V14a.5.5 0 0 1-1 0V8.5H2a.5.5 0 0 1 0-1h5.5V2a.5.5 0 0 1 .5-.5z"/>
         </svg>
     </a>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // 로그인/회원가입 탭 전환
         document.querySelectorAll('#authTabs .nav-link').forEach(tab => {
-            tab.addEventListener('click', (e) => {
+            tab.addEventListener('click', function(e) {
                 e.preventDefault();
                 document.querySelectorAll('.auth-tab-content').forEach(content => {
                     content.style.display = 'none';
                 });
-                document.querySelector(e.target.getAttribute('href')).style.display = 'block';
-                document.querySelectorAll('#authTabs .nav-link').forEach(t => {
-                    t.classList.remove('active');
-                });
-                e.target.classList.add('active');
+                document.querySelector(this.getAttribute('href')).style.display = 'block';
+                document.querySelectorAll('#authTabs .nav-link').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
             });
         });
 
+        // 미로 모달 리뷰 로딩
         const mazeModal = document.getElementById('mazeModal');
         if (mazeModal) {
             mazeModal.addEventListener('show.bs.modal', event => {
                 const button = event.relatedTarget;
                 const mazeId = button.getAttribute('data-maze-id');
                 const imagePath = button.getAttribute('data-image-path');
-                document.getElementById('modalMazeImage').src = imagePath;
+
+                if(imagePath) {
+                    document.getElementById('modalMazeImage').src = imagePath;
+                } else {
+                    document.getElementById('modalMazeImage').src = "";
+                }
+
                 document.getElementById('playMazeBtn').href = `/play_maze/${mazeId}`;
 
-                // 리뷰 목록 AJAX로 불러오기
+                // 리뷰 목록 로드
                 fetch(`/maze_reviews/${mazeId}`)
-                    .then(response => response.json())
+                    .then(res => res.json())
                     .then(reviews => {
                         const reviewsList = document.getElementById('reviewsList');
-                        reviewsList.innerHTML = '';
-                        if (reviews.length === 0) {
-                            reviewsList.innerHTML = '<div class="alert alert-secondary">아직 리뷰가 없습니다.</div>';
-                        } else {
-                            reviews.forEach(r => {
-                                const div = document.createElement('div');
-                                div.className = 'border-bottom py-2';
-                                div.innerHTML = `<strong>${r.username}</strong> <span class="text-muted small">${r.created_at}</span><br>${r.content}`;
-                                reviewsList.appendChild(div);
-                            });
-                        }
+                        reviewsList.innerHTML = reviews.map(r => `
+                            <div class="border-bottom py-2">
+                                <strong>${r.username}</strong>
+                                <span class="text-muted small">(${r.created_at.split(' ')[0]})</span><br>
+                                <div class="review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
+                                <p>${r.content}</p>
+                            </div>
+                        `).join('') || '<div class="alert alert-secondary">아직 리뷰가 없습니다.</div>';
                     });
             });
         }
