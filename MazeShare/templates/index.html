@@ -135,41 +135,42 @@
     <div class="container mt-5">
         <h1 class="mb-4">MazeShare에 오신 것을 환영합니다!</h1>
 
-        <!-- 검색 & 필터 -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <form class="d-flex" role="search" method="GET" action="/">
-                    <input class="form-control me-2"
-                        type="search"
-                        name="q"
-                        placeholder="미로 제목 또는 작성자 검색"
-                        aria-label="Search"
-                        value="{{ query if query }}">
-                    <button class="btn btn-outline-success" type="submit">검색</button>
-                </form>
-            </div>
-            <div class="col-md-3">
-                <div class="dropdown">
-                    <button class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        정렬/필터 선택
-                    </button>
-                    <ul class="dropdown-menu w-100">
-                        <li><a class="dropdown-item" href="#" onclick="sortByRanking()">랭킹</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="filterByBookmarks()">즐겨찾기</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="filterByMy()">My</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="resetFilters()">초기화</a></li>
-                    </ul>
+        <!-- 검색 & 필터 (폼 전체로 감쌈) -->
+        <form id="filterForm" method="GET" action="/">
+            <input type="hidden" name="sort" id="sortInput" value="{{ request.args.get('sort', '') }}">
+            <input type="hidden" name="filter" id="filterInput" value="{{ request.args.get('filter', '') }}">
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="d-flex" role="search">
+                        <input class="form-control me-2"
+                            type="search"
+                            name="q"
+                            placeholder="미로 제목 또는 작성자 검색"
+                            value="{{ request.args.get('q', '') }}">
+                        <button class="btn btn-outline-success" type="submit">검색</button>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            정렬/필터 선택
+                        </button>
+                        <ul class="dropdown-menu w-100">
+                            <li><a class="dropdown-item" href="#" onclick="setSort('rating')">평점순</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="setFilter('bookmarks')">즐겨찾기</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="setFilter('my')">My</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="resetFilters()">초기화</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
-        </div>
+        </form>
 
         <!-- 미로 목록 -->
-        <div class="row row-cols-1 row-cols-md-3 g-4 justify-content-center" id="mazeList">
+        <div class="row row-cols-1 row-cols-md-3 g-4 justify-content-center">
             {% for maze in mazes.items %}
-            <div class="col maze-card"
-                data-rating="{{ (maze.reviews | sum(attribute='rating') / maze.reviews | length) if maze.reviews else 0 }}"
-                data-bookmarked="{{ 'true' if current_user.is_authenticated and maze in current_user.bookmarked_mazes else 'false' }}"
-                data-author="{{ maze.author.username }}">
+            <div class="col maze-card">
                 <div class="card h-100">
                     {% if maze.image_path %}
                     <img src="{{ url_for('static', filename=maze.image_path) }}"
@@ -196,7 +197,6 @@
                             <span class="badge bg-secondary">{{ maze.author.username }}</span>
                         </div>
                         <div class="maze-rating">
-                            <!-- 정상적인 SVG 별 아이콘 -->
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-star" viewBox="0 0 16 16">
                                 <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
                             </svg>
@@ -220,43 +220,26 @@
         </div>
 
         <!-- 페이지네이션 -->
-        <nav aria-label="미로 페이지네이션" class="mt-5 mb-5">
+        <nav aria-label="미로 페이지네이션" class="mt-5">
             <ul class="pagination justify-content-center">
-                {% if mazes.has_prev %}
-                <li class="page-item">
-                    <a class="page-link" href="?q={{ query }}&page={{ mazes.prev_num }}">이전</a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <a class="page-link" href="#" tabindex="-1">이전</a>
-                </li>
-                {% endif %}
-
                 {% for page_num in mazes.iter_pages() %}
                     {% if page_num %}
-                        {% if page_num == mazes.page %}
-                            <li class="page-item active">
-                                <a class="page-link" href="#">{{ page_num }}</a>
-                            </li>
-                        {% else %}
-                            <li class="page-item">
-                                <a class="page-link" href="?q={{ query }}&page={{ page_num }}">{{ page_num }}</a>
-                            </li>
-                        {% endif %}
+                        <li class="page-item {% if page_num == mazes.page %}active{% endif %}">
+                            <a class="page-link"
+                               href="{{ url_for('index',
+                                    page=page_num,
+                                    q=request.args.get('q', ''),
+                                    sort=request.args.get('sort', ''),
+                                    filter=request.args.get('filter', '')) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
                     {% else %}
-                        <span class="page-link">...</span>
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
                     {% endif %}
                 {% endfor %}
-
-                {% if mazes.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?q={{ query }}&page={{ mazes.next_num }}">다음</a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <a class="page-link" href="#">다음</a>
-                </li>
-                {% endif %}
             </ul>
         </nav>
     </div>
@@ -292,6 +275,25 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // 정렬/필터 설정 함수
+        function setSort(sortType) {
+            document.getElementById('sortInput').value = sortType;
+            document.getElementById('filterInput').value = '';
+            document.getElementById('filterForm').submit();
+        }
+
+        function setFilter(filterType) {
+            document.getElementById('filterInput').value = filterType;
+            document.getElementById('sortInput').value = '';
+            document.getElementById('filterForm').submit();
+        }
+
+        function resetFilters() {
+            document.getElementById('sortInput').value = '';
+            document.getElementById('filterInput').value = '';
+            document.getElementById('filterForm').submit();
+        }
+
         // 로그인/회원가입 탭 전환
         document.querySelectorAll('#authTabs .nav-link').forEach(tab => {
             tab.addEventListener('click', function(e) {
@@ -335,65 +337,6 @@
                             </div>
                         `).join('') || '<div class="alert alert-secondary">아직 리뷰가 없습니다.</div>';
                     });
-            });
-        }
-
-        // 정렬/필터 기능
-        function sortByRanking() {
-            const container = document.getElementById('mazeList');
-            const cards = Array.from(container.getElementsByClassName('maze-card'));
-
-            cards.sort((a, b) => {
-                const aRating = parseFloat(a.dataset.rating) || 0;
-                const bRating = parseFloat(b.dataset.rating) || 0;
-                return bRating - aRating;
-            });
-
-            cards.forEach(card => container.appendChild(card));
-            setActiveFilter('랭킹');
-        }
-
-        function filterByBookmarks() {
-            {% if not current_user.is_authenticated %}
-                alert('로그인이 필요합니다!');
-                return;
-            {% endif %}
-
-            const cards = document.getElementsByClassName('maze-card');
-            Array.from(cards).forEach(card => {
-                card.style.display = card.dataset.bookmarked === 'true' ? '' : 'none';
-            });
-            setActiveFilter('즐겨찾기');
-        }
-
-        function filterByMy() {
-            {% if not current_user.is_authenticated %}
-                alert('로그인이 필요합니다!');
-                return;
-            {% endif %}
-
-            const cards = document.getElementsByClassName('maze-card');
-            Array.from(cards).forEach(card => {
-                card.style.display = card.dataset.author === "{{ current_user.username }}" ? '' : 'none';
-            });
-            setActiveFilter('My');
-        }
-
-        function resetFilters() {
-            const cards = document.getElementsByClassName('maze-card');
-            Array.from(cards).forEach(card => {
-                card.style.display = '';
-            });
-            setActiveFilter('');
-            location.reload(); // 초기 상태 완전 복원 (필터/정렬 모두 해제)
-        }
-
-        function setActiveFilter(filterName) {
-            document.querySelectorAll('.dropdown-item').forEach(item => {
-                item.classList.remove('active');
-                if(item.textContent === filterName) {
-                    item.classList.add('active');
-                }
             });
         }
 
