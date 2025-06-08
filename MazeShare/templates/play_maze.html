@@ -19,11 +19,6 @@
         .player {
             transition: all 0.1s ease;
         }
-        #reviewButton:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        /* 별점 입력 스타일 (왼쪽부터 오른쪽으로 채워짐) */
         .star-rating {
             font-size: 24px;
             margin-bottom: 15px;
@@ -42,7 +37,6 @@
             display: none;
         }
         .review-card { margin-bottom: 15px; }
-        /* 리뷰 카드의 별점 표시 (작게, 점수 표시 없음) */
         .review-rating { color: #ffd700; font-size: 14px; }
     </style>
 </head>
@@ -55,7 +49,8 @@
                 <button class="btn btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#rankingModal">
                     랭킹 보기
                 </button>
-                <button class="btn btn-outline-warning ms-2" id="reviewButton" disabled>
+                <!-- 리뷰 버튼 항상 활성화, 실제 클릭 시 JS로 권한 체크 -->
+                <button class="btn btn-outline-warning ms-2" id="reviewButton">
                     리뷰 등록/보기
                 </button>
                 <div id="timerDisplay" class="text-muted mt-2" style="display: none;">
@@ -77,7 +72,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">🏆 {{ maze.title }} 랭킹</h5>
-                    <button type="button class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <ul id="rankingList" class="list-group ranking-list"></ul>
@@ -134,11 +129,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const ctx = canvas.getContext('2d');
     const reviewButton = document.getElementById('reviewButton');
 
+    // 랭킹 등록 여부 전역 변수
+    let hasRanking = false;
+
     // 랭킹 등록 여부 확인
     fetch(`/check_ranking/${mazeId}`)
         .then(res => res.json())
         .then(data => {
-            reviewButton.disabled = !data.has_ranking;
+            hasRanking = data.has_ranking;
         });
 
     if (!Array.isArray(mazeData) || mazeData.length === 0) {
@@ -214,7 +212,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.addEventListener('keydown', (e) => {
         if (!isPlaying) return;
-
         const prev = { x: player.x, y: player.y };
         switch(e.key) {
             case 'ArrowUp': player.y--; break;
@@ -267,8 +264,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     });
 
-    // 리뷰 버튼 클릭 시 모달 표시
+    // 리뷰 버튼 클릭 시 랭킹 여부 체크 후 모달 표시/팝업
     document.getElementById('reviewButton').addEventListener('click', () => {
+        if (!hasRanking) {
+            alert('리뷰 등록을 위해선 플레이를 먼저 진행해주세요!');
+            return;
+        }
         const reviewModal = new bootstrap.Modal('#reviewModal');
         reviewModal.show();
         loadReviews();
@@ -280,12 +281,10 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(reviews => {
                 const reviewsList = document.getElementById('reviewsList');
                 reviewsList.innerHTML = reviews.map(r => {
-                    // created_at이 문자열이면 그대로, 아니면 포맷팅
                     let createdAt = r.created_at;
                     if (typeof createdAt !== 'string') {
                         createdAt = new Date(createdAt).toISOString().split('T')[0];
                     }
-                    // 별점 별 표시 (작게, 점수 없이)
                     return `
                         <div class="card mb-3 review-card">
                             <div class="card-body">
@@ -307,9 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.star-rating .star').forEach((star, index, stars) => {
         star.addEventListener('click', function() {
             const rating = this.previousElementSibling.value;
-            // 모든 별 초기화
             stars.forEach(s => s.classList.remove('active'));
-            // 클릭한 별까지 채우기 (왼쪽부터 오른쪽으로)
             for (let i = 0; i <= index; i++) {
                 stars[i].classList.add('active');
             }
@@ -344,6 +341,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     drawMaze();
 });
-</script>
+    </script>
 </body>
 </html>
